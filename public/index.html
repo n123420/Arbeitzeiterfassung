@@ -112,8 +112,8 @@
       
       <!-- Stundenangabe mit Schieberegler und Dezimalwert -->
       <div class="range-container">
-        <input type="text" id="hours-input" placeholder="Stunden (z. B. 3.5)" step="0.1" min="0" max="10" value="0" required />
-        <input type="range" id="hours" min="0" max="10" value="0" step="0.1" required />
+        <input type="text" id="hours-input" placeholder="Stunden (1-10)" step="0.1" min="1" max="10" value="1" required />
+        <input type="range" id="hours" min="1" max="10" value="0" step="0.1" required />
         <span id="range-value">0</span> h
       </div>
 
@@ -146,10 +146,20 @@
       }
     });
 
+
     // Formular-Submit: Sende die Daten an den Server
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+        // Lies den Stunden-Wert als Zahl aus
+        const hours = parseFloat(hoursInput.value);
+
+        // Validierung: 1 ≤ hours ≤ 10
+        if (isNaN(hours) || hours < 1 || hours > 10) {
+            alert('Bitte gib einen Wert zwischen 1 und 10 Stunden ein.');
+            return;
+        
+    }
       const data = {
         user: document.getElementById('user').value,
         date: document.getElementById('date').value,
