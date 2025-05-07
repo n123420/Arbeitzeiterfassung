@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Arbeitszeiterfassung</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fc;
+    }
+    header {
+      background-color: #0056b3;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 2em;
+    }
+    nav {
+      margin-top: 20px;
+      text-align: center;
+      background-color: #ffffff;
+      padding: 10px 0;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    nav a {
+      font-size: 18px;
+      color: #0056b3;
+      margin-right: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    main {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    form {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    input[type="text"], input[type="date"], input[type="number"], textarea {
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      height: 120px;
+    }
+    .range-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .range-container input[type="text"] {
+      width: 20%;
+      margin-right: 10px;
+    }
+    .range-container input[type="range"] {
+      width: 70%;
+    }
+    .range-container span {
+      font-size: 16px;
+      color: #333;
+    }
+    button {
+      padding: 12px 18px;
+      font-size: 16px;
+      background-color: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #003d8f;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    Arbeitszeit eintragen
+  </header>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="statistik.html">Statistik</a>
+    <a href="einträge.html">Einträge</a>
+  </nav>
+
+  <!-- Formular zur Arbeitszeiterfassung -->
+  <main>
+    <form id="worktime-form">
+      <input type="text" id="user" placeholder="Name" required />
+      <input type="date" id="date" required />
+      
+      <!-- Stundenangabe mit Schieberegler und Dezimalwert -->
+      <div class="range-container">
+        <input type="text" id="hours-input" placeholder="Stunden (z. B. 3.5)" step="0.1" min="0" max="10" value="0" required />
+        <input type="range" id="hours" min="0" max="10" value="0" step="0.1" required />
+        <span id="range-value">0</span> h
+      </div>
+
+      <input type="text" id="project" placeholder="Projekt" required />
+      
+      <!-- Größerer Kommentarbereich -->
+      <textarea id="comment" placeholder="Kommentar (optional)"></textarea>
+
+      <button type="submit">Speichern</button>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById('worktime-form');
+    const rangeInput = document.getElementById('hours');
+    const rangeValue = document.getElementById('range-value');
+    const hoursInput = document.getElementById('hours-input');
+
+    // Aktualisiere den Stundenwert beim Verschieben des Schiebereglers
+    rangeInput.addEventListener('input', () => {
+      rangeValue.textContent = rangeInput.value;
+      hoursInput.value = rangeInput.value; // Sync den Wert des Inputs mit dem Schieberegler
+    });
+
+    // Aktualisiere den Schieberegler, wenn der Benutzer eine Zahl eingibt
+    hoursInput.addEventListener('input', () => {
+      if (hoursInput.value >= 0 && hoursInput.value <= 10) {
+        rangeInput.value = hoursInput.value;
+        rangeValue.textContent = hoursInput.value;
+      }
+    });
+
+    // Formular-Submit: Sende die Daten an den Server
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const data = {
+        user: document.getElementById('user').value,
+        date: document.getElementById('date').value,
+        hours: parseFloat(hoursInput.value),
+        project: document.getElementById('project').value,
+        comment: document.getElementById('comment').value,
+      };
+
+      await fetch('/api/worktime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      // Formular zurücksetzen
+      form.reset();
+      rangeValue.textContent = '0';
+      hoursInput.value = '0';
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Statistik der Arbeitszeiterfassung</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fc;
+    }
+    header {
+      background-color: #0056b3;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 2em;
+    }
+    nav {
+      margin-top: 20px;
+      text-align: center;
+      background-color: #ffffff;
+      padding: 10px 0;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    nav a {
+      font-size: 18px;
+      color: #0056b3;
+      margin-right: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    main {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    form {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      width: 60%;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 12px 18px;
+      font-size: 16px;
+      background-color: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #003d8f;
+    }
+    section {
+      margin-top: 30px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      color: #0056b3;
+    }
+    p {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    #result {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+    li {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    button.delete-btn {
+      margin-left: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      background-color: #ff5733;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button.delete-btn:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    Arbeitszeit Statistik
+  </header>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="index.html">Zurück zur Eingabe</a>
+    <a href="einträge.html">Einträge</a>
+  </nav>
+
+  <!-- Filterformular -->
+  <main>
+    <form id="filter-form">
+      <input type="text" id="username" placeholder="z. B. Nils" required />
+      <button type="submit">Anzeigen</button>
+    </form>
+
+    <!-- Statistik-Bereich -->
+    <section id="statistics" style="display: none;">
+      <h2>Statistiken</h2>
+      <p>Gesamtarbeitszeit: <strong><span id="total-hours">0</span> Stunden</strong></p>
+      <p>Durchschnitt pro Tag: <strong><span id="average-hours">0</span> Stunden</strong></p>
+      <p>Nicht akzeptierte Einträge: <strong><span id="unaccepted-count">0</span></strong></p>
+    </section>
+
+    <!-- Ergebnisliste -->
+    <h2 id="entries-title" style="display: none;">Gefilterte Einträge</h2>
+    <ul id="result"></ul>
+  </main>
+
+  <script>
+    const form = document.getElementById('filter-form');
+    const statsSection = document.getElementById('statistics');
+    const entriesTitle = document.getElementById('entries-title');
+    const resultList = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('username').value.trim();
+      await loadData(name);
+    });
+
+    async function loadData(user) {
+      // Alle Einträge laden
+      const res = await fetch('/api/worktime');
+      const entries = await res.json();
+
+      // Filtern & Sortieren
+      const filtered = entries
+        .filter(e => e.user.toLowerCase() === user.toLowerCase())
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // Statistiken berechnen
+      const totalHours = filtered.reduce((sum, e) => sum + e.hours, 0);
+      const averageHours = filtered.length
+        ? (totalHours / filtered.length).toFixed(2)
+        : 0;
+      const unacceptedCount = filtered.filter(e => e.status !== 'accepted').length;
+
+      // Statistiken anzeigen
+      document.getElementById('total-hours').textContent = totalHours.toFixed(2);
+      document.getElementById('average-hours').textContent = averageHours;
+      document.getElementById('unaccepted-count').textContent = unacceptedCount;
+
+      statsSection.style.display = 'block';
+      entriesTitle.style.display = 'block';
+
+      // Einträge rendern
+      resultList.innerHTML = '';
+      filtered.forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.date} – ${entry.hours} h – ${entry.project} [${entry.status}]`;
+
+        // Löschen-Button
+        const btn = document.createElement('button');
+        btn.textContent = 'Löschen';
+        btn.className = 'delete-btn';
+        btn.addEventListener('click', () => deleteEntry(entry.id, user));
+
+        li.appendChild(btn);
+        resultList.appendChild(li);
+      });
+
+      if (filtered.length === 0) {
+        resultList.innerHTML = '<li>Keine Einträge gefunden.</li>';
+      }
+    }
+
+    async function deleteEntry(id, user) {
+      if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+      const res = await fetch(`/api/worktime/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        // nach erfolgreichem Löschen neu laden
+        await loadData(user);
+      } else {
+        alert('Löschen fehlgeschlagen');
+      }
+    }
+  </script>
+
+</body>
+</html>
